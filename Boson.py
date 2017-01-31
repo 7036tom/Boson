@@ -21,6 +21,7 @@ seed = 7
 numpy.random.seed(seed)
 
 from keras.utils import np_utils
+K.set_image_dim_ordering('th')
 
 class WinnerTakeAll1D_GaborMellis(Layer):
 
@@ -115,7 +116,8 @@ for i in range(550000):
 	#x2[i,4] = log(1)#+dataset[i, 3])
 
 
-
+X = X.reshape(X.shape[0], 1, 28).astype('float32')
+X2 = X2.reshape(X2.shape[0], 1, 28).astype('float32')
 
 
 
@@ -132,7 +134,7 @@ model = Sequential()
 #model.add(GlobalMaxPooling1D())
 #model.add(Flatten())  
 #model.add(Dense(300, input_dim=28, init='normal', activation='relu' ,W_regularizer=l1l2(l1=0.000005, l2=0.00005))) #W_regularizer=l1(0.000001), activity_regularizer=activity_l1(0.000001)))
-model.add(LocallyConnected1D(64, 10, input_shape=(28,32)))
+model.add(LocallyConnected1D(64, 10, input_shape=(1,28)))
 #model.add(Reshape((10,28)))
 model.add(Flatten())
 #model.add(L)
