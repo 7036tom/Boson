@@ -1,6 +1,6 @@
 # Create first network with Keras
 from keras.models import Sequential
-from keras.layers import Dense, Reshape, Activation, Dropout,Layer, LocallyConnected1D, Convolution1D, GlobalMaxPooling1D, Flatten, MaxPooling1D
+from keras.layers import Dense, Reshape, Activation, Dropout,Layer, LocallyConnected1D, LocallyConnected2D, Convolution1D, GlobalMaxPooling1D, Flatten, MaxPooling1D
 from keras.optimizers import SGD
 from keras.optimizers import RMSprop
 import math
@@ -21,6 +21,7 @@ seed = 7
 numpy.random.seed(seed)
 
 from keras.utils import np_utils
+from keras.layers.convolutional import Convolution2D
 K.set_image_dim_ordering('th')
 
 class WinnerTakeAll1D_GaborMellis(Layer):
@@ -116,8 +117,8 @@ for i in range(550000):
 	#x2[i,4] = log(1)#+dataset[i, 3])
 
 
-X = X.reshape(X.shape[0], 1, 28).astype('float32')
-X2 = X2.reshape(X2.shape[0], 1, 28).astype('float32')
+X = X.reshape(X.shape[0], 28).astype('float32')
+X2 = X2.reshape(X2.shape[0], 28).astype('float32')
 
 
 
@@ -129,12 +130,13 @@ kfold = StratifiedKFold(n_splits=2, shuffle=True, random_state=seed)
 cvscores = []
 #input_shape=(28,1)
 model = Sequential()
+#model.add(LocallyConnected2D(16, 3, 3, border_mode='valid', input_shape=(1, 7, 4), activation='relu'))
 #model.add(Convolution1D(32, 3, border_mode='valid', input_shape=(30,1), activation='relu'))
 #model.add(MaxPooling1D(pool_length=10))
 #model.add(GlobalMaxPooling1D())
 #model.add(Flatten())  
 #model.add(Dense(300, input_dim=28, init='normal', activation='relu' ,W_regularizer=l1l2(l1=0.000005, l2=0.00005))) #W_regularizer=l1(0.000001), activity_regularizer=activity_l1(0.000001)))
-model.add(LocallyConnected1D(64, 10, input_shape=(1,28)))
+model.add(LocallyConnected1D(64, 10, input_dim=28))
 #model.add(Reshape((10,28)))
 model.add(Flatten())
 #model.add(L)
@@ -154,6 +156,7 @@ model.compile(optimizer=rms, loss='binary_crossentropy', metrics=['accuracy']) #
 #model.compile(optimizer=sgd, loss='categorical_crossentropy', metrics=['accuracy']) # Gradient descent
 #model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy']) # Gradient descent
 
+print (model.summary()) # Affiche les details du reseau !
 for i in range(2):
 	for train, test in kfold.split(X2, Y2):
 		# create model
