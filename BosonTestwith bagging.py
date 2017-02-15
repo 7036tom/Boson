@@ -1,7 +1,7 @@
 # Create first network with Keras
 from keras.models import Sequential
 from keras.layers import Dense, Reshape, Activation, Dropout,Layer, LocallyConnected1D, LocallyConnected2D, Convolution1D, GlobalMaxPooling1D, Flatten, MaxPooling1D, MaxPooling2D
-from keras.callbacks import EarlyStopping, ModelCheckpoint
+from keras.callbacks import EarlyStopping, ModelCheckpoint, LearningRateScheduler, ReduceLROnPlateau
 from keras.optimizers import SGD
 from keras.optimizers import RMSprop, Adamax
 import math
@@ -157,7 +157,7 @@ Y = np_utils.to_categorical(Y, 2) # convert class vectors to binary class matric
 model = [Sequential(), Sequential(),Sequential(), Sequential(), Sequential()]
 
 #rms = RMSprop(lr=0.001, rho=0.9, epsilon=1e-08, decay=0.0001)
-admax = Adamax(lr=0.002, beta_1=0.9, beta_2=0.999, epsilon=1e-08, decay=0.0001)
+
 
 # Weights more adapted to the class imbalanced of the issue.
 class_weight = {0 : 3,
@@ -168,42 +168,55 @@ class_weight = {0 : 3,
 kfold = StratifiedKFold(n_splits=5, shuffle=True, random_state=seed)
 cvscores = []
 
+"""
+def scheduler(epoch):
+    return 0.01/(1+epoch)
+"""
+
+		
+
 j = 0
 
 for i in range(1):
 	for train, test in kfold.split(X2, Y2):
 		print(j) 
 		print("ieme fold")
+		
 		# create model
-		model[j].add(Dense(120, input_dim=30, init='normal', activation='relu' ,W_regularizer=l1l2(l1=0.000005, l2=0.00005))) #W_regularizer=l1(0.000001), activity_regularizer=activity_l1(0.000001)))
+		model[j].add(Dense(135, input_dim=30, init='normal', activation='relu' ,W_regularizer=l1l2(l1=0.000005, l2=0.00005))) #W_regularizer=l1(0.000001), activity_regularizer=activity_l1(0.000001)))
 		model[j].add(L)
-		model[j].add(Dense(120, activation ='relu'))
+		model[j].add(Dense(75, activation ='relu'))
 		model[j].add(L)
-		model[j].add(Dense(120, activation ='relu'))
+		model[j].add(Dense(105, activation ='relu'))
 		model[j].add(L)
 		model[j].add(Dense(2))
 		model[j].add(Activation('softmax'))
 
-		model[j].compile(optimizer=admax, loss='binary_crossentropy', metrics=['sparse_categorical_accuracy']) # Gradient descent
+		admax = Adamax(lr=0.03, beta_1=0.9, beta_2=0.999, epsilon=1e-08, decay=0.01)#decay ? 0.002
+
+		reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.2, patience=5, min_lr=0.00001)
+
+		callbacks = [
+   			EarlyStopping(monitor='val_loss', patience=10, verbose=0),
+   			ModelCheckpoint("/home/tom/Documents/Projets python/bosongit/weigh.hdf", monitor='val_loss', save_best_only=True, verbose=0),
+   			reduce_lr,
+		]
+
+		model[j].compile(optimizer='Adamax', loss='binary_crossentropy', metrics=['sparse_categorical_accuracy']) # Gradient descent
 		#model.compile(optimizer=sgd, loss='categorical_crossentropy', metrics=['accuracy']) # Gradient descent
 		#model[j].compile(optimizer='adam', loss='categorical_crossentropy', metrics=[''sparse_categorical_accuracy'']) # Gradient descent
 
 		print (model[j].summary()) # Affiche les details du reseau !
 
 		Y3 = np_utils.to_categorical(Y2, 2) # convert class vectors to binary class matrices
-		W2 =  np_utils.to_categorical(Y2[test], 2)
-	
+			
 		
 		# Early stopping.
 		
-		callbacks = [
-    	EarlyStopping(monitor='val_loss', patience=10, verbose=0),
-    	ModelCheckpoint("/home/tom/Documents/Projets python/bosongit/weigh.hdf", monitor='val_loss', save_best_only=True, verbose=0),
-		]
 		
 		
 		# Fit the model		
-		model[j].fit(X2[train], Y3[train],validation_data=(X2[test], Y3[test]), nb_epoch=40, batch_size=96, class_weight=class_weight, shuffle=True, verbose=1, callbacks=callbacks)#, class_weight=class_weight)
+		model[j].fit(X2[train], Y3[train],validation_data=(X2[test], Y3[test]), nb_epoch=100, batch_size=80, class_weight=class_weight, shuffle=True, verbose=1, callbacks=callbacks)#, class_weight=class_weight)
 
 		#model.fit(X2[train], Y3[train], nb_epoch=200, batch_size=96)
 
