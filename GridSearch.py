@@ -8,6 +8,7 @@ from keras import backend as K
 from theano import tensor as T
 import numpy as np
 import pandas
+import math
 from keras.regularizers import l1l2
 from keras.utils import np_utils
 from sklearn.metrics import f1_score
@@ -44,10 +45,26 @@ class WinnerTakeAll1D_GaborMellis(Layer):
         shape = list(input_shape)
         return tuple(shape)
 
-    
-def AMS(y_true, y_probs):
-    
-    return 0.2
+
+def AMS(estimator, y_true, y_probs):
+	
+	Z = estimator.predict(y_true, batch_size=32, verbose=0)
+
+	Y = y_true
+	
+	s = 0
+	b = 0
+	for i in range(0,len(y_true)):
+		if (Z[i]==1):
+			if (Y[i][1]>Y[i][0]):
+				s = s + W[i][0]
+			if (Y[i][1]<=Y[i][0]):
+				b = b + W[i][0]
+	br = 10.0
+	radicand = 2 *( (s+b+br) * math.log(1.0 + s/(b+br)) - s)
+	AMS = math.sqrt(radicand)
+	return AMS
+
 
 
 # fix random seed for reproducibility
@@ -82,8 +99,9 @@ class_weight = {0 : 3,
 dataframe = pandas.read_csv("training.csv", header=None)
 dataset = dataframe.values
 
-X = dataset[0:40000:,1:31].astype('float32')
-Y = dataset[0:40000:,32].astype('float32')
+X = dataset[0:250000:,1:31].astype('float32')
+Y = dataset[0:250000:,32].astype('float32')
+W = dataset[0:250000:,31:32]
 
 X -= np.mean(X, axis = 0) # center
 X /= np.std(X, axis = 0) # normalize
@@ -91,7 +109,7 @@ X /= np.std(X, axis = 0) # normalize
 Y = np_utils.to_categorical(Y, 2) # convert class vectors to binary class matrices
 
 # create model
-model = KerasClassifier(build_fn=create_model, nb_epoch=20, batch_size=80, verbose=1)
+model = KerasClassifier(build_fn=create_model, nb_epoch=1, batch_size=80, verbose=1)
 
 
 kappa_scorer = make_scorer(cohen_kappa_score)
@@ -102,11 +120,11 @@ epochs = [100, 120, 140, 160, 180, 200]
 WTAX=[3,4,5]
 l1_value = [0.0000005, 0.0000003, 0.0000007, 0.0000009, 0.0000001]
 l2_value = [0.0000005, 0.0000003, 0.0000007, 0.0000009, 0.0000001]
-learn_rate = [0.0025, 0.005, 0.01, 0.02, 0.03]
-momentum = [0.0025, 0.005, 0.01, 0.02, 0.03]
+learn_rate = [0.0025, 0.005]
+momentum = [0.0025, 0.005]
 
 param_grid = dict(learn_rate=learn_rate, momentum=momentum)
-grid = GridSearchCV(estimator=model, param_grid=param_grid, n_jobs=-1)#, verbose=1)
+grid = GridSearchCV(estimator=model, param_grid=param_grid, n_jobs=1, scoring=AMS)#, verbose=1)
 grid_result = grid.fit(X, Y)
 # summarize results
 print("Best: %f using %s" % (grid_result.best_score_, grid_result.best_params_))
