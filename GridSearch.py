@@ -50,16 +50,18 @@ def AMS(estimator, y_true, y_probs):
 	
 	Z = estimator.predict(y_true, batch_size=32, verbose=0)
 
-	Y = y_true
-	
+	Y = y_probs
+
 	s = 0
 	b = 0
+	
 	for i in range(0,len(y_true)):
-		if (Z[i]==1):
-			if (Y[i][1]>Y[i][0]):
+		if (Y[i][1]>Y[i][0]):
+			if (Z[i] == 1):
 				s = s + W[i][0]
-			if (Y[i][1]<=Y[i][0]):
+			if (Z[i] == 0):
 				b = b + W[i][0]
+	
 	br = 10.0
 	radicand = 2 *( (s+b+br) * math.log(1.0 + s/(b+br)) - s)
 	AMS = math.sqrt(radicand)
@@ -72,11 +74,11 @@ seed = 7
 numpy.random.seed(seed)
 
 # Function to create model, required for KerasClassifier
-def create_model(learn_rate, momentum):
+def create_model(decay):
     # create model
     #L=WinnerTakeAll1D_GaborMellis(spatial=1, OneOnX=WTAX)
     model = Sequential()
-    model.add(Dense(90, input_dim=30, init='normal', activation='relu' ,W_regularizer=l1l2(l1=0.0000005, l2=0.0000005))) #W_regularizer=l1(0.000001), activity_regularizer=activity_l1(0.000001)))
+    model.add(Dense(90, input_dim=30, init='normal', activation='relu' ,W_regularizer=l1l2(l1=9E-7, l2=5e-07))) #W_regularizer=l1(0.000001), activity_regularizer=activity_l1(0.000001)))
     #model.add(L)
     model.add(Dense(50, activation ='relu'))
     #model.add(L)
@@ -84,7 +86,7 @@ def create_model(learn_rate, momentum):
     #model.add(L)
     model.add(Dense(2))
     model.add(Activation('softmax'))
-    admax = Adamax(lr=learn_rate, beta_1=0.9, beta_2=0.999, epsilon=1e-08, decay=momentum)
+    admax = Adamax(lr=0.002, beta_1=0.9, beta_2=0.999, epsilon=1e-08, decay=decay)
     model.compile(optimizer=admax, loss='binary_crossentropy', metrics=['accuracy']) # Gradient descent
     return model
 
@@ -109,7 +111,7 @@ X /= np.std(X, axis = 0) # normalize
 Y = np_utils.to_categorical(Y, 2) # convert class vectors to binary class matrices
 
 # create model
-model = KerasClassifier(build_fn=create_model, nb_epoch=1, batch_size=80, verbose=1)
+model = KerasClassifier(build_fn=create_model, nb_epoch=10, batch_size=80, verbose=1)
 
 
 kappa_scorer = make_scorer(cohen_kappa_score)
@@ -120,11 +122,11 @@ epochs = [100, 120, 140, 160, 180, 200]
 WTAX=[3,4,5]
 l1_value = [0.0000005, 0.0000003, 0.0000007, 0.0000009, 0.0000001]
 l2_value = [0.0000005, 0.0000003, 0.0000007, 0.0000009, 0.0000001]
-learn_rate = [0.0025, 0.005]
-momentum = [0.0025, 0.005]
+l_rate = [0.001, 0.002, 0.003 ,0.004]
+decay = [0.000001, 0.000002, 0.000003, 0.000004, 0.000005]
 
-param_grid = dict(learn_rate=learn_rate, momentum=momentum)
-grid = GridSearchCV(estimator=model, param_grid=param_grid, n_jobs=1, scoring=AMS)#, verbose=1)
+param_grid = dict(decay=decay)
+grid = GridSearchCV(estimator=model, param_grid=param_grid, n_jobs=1, scoring=AMS, cv =2, fit_params={'class_weight':class_weight})#, verbose=1)
 grid_result = grid.fit(X, Y)
 # summarize results
 print("Best: %f using %s" % (grid_result.best_score_, grid_result.best_params_))
