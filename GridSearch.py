@@ -49,21 +49,42 @@ class WinnerTakeAll1D_GaborMellis(Layer):
 def AMS(estimator, y_true, y_probs):
 	
 	Z = estimator.predict(y_true, batch_size=32, verbose=0)
-
+	
 	Y = y_probs
 
 	s = 0
 	b = 0
+
+	print("ytrue0 : "+str(y_true[0][0]))
+	print("X : "+str(X[0][0]))
+	print("X1 : "+str(X[250000-len(y_true)][0]))
 	
+	if (y_true[0][0]==X[0][0]):
+		Wp=W[:len(y_true)]
+		print(X[0])
+		print(y_true[0])
+	elif(y_true[0][0]==X[250000-166666][0]):
+		Wp=W[250000-166666:]
+		print(X[250000-166666])
+		print(y_true[0])
+	else:
+		Wp=W[250000-len(y_true):]
+		print(X[250000-len(y_true)])
+		print(y_true[0])
+	print(len(y_true))
+	print("++++++++++")
+
+
 	for i in range(0,len(y_true)):
-		if (Y[i][1]>Y[i][0]):
-			if (Z[i] == 1):
-				s = s + W[i][0]
-			if (Z[i] == 0):
-				b = b + W[i][0]
+		if (Z[i]==1):
+			if (Y[i][0] <= Y[i][1]):
+				s = s + Wp[i][0]
+			if (Y[i][0] > Y[i][1]):
+				b = b + Wp[i][0]
 	
 	br = 10.0
 	radicand = 2 *( (s+b+br) * math.log(1.0 + s/(b+br)) - s)
+
 	AMS = math.sqrt(radicand)
 	return AMS
 
@@ -74,25 +95,28 @@ seed = 7
 numpy.random.seed(seed)
 
 # Function to create model, required for KerasClassifier
-def create_model(decay):
+def create_model(neurons1, neurons2, neurons3):
     # create model
     #L=WinnerTakeAll1D_GaborMellis(spatial=1, OneOnX=WTAX)
     model = Sequential()
-    model.add(Dense(90, input_dim=30, init='normal', activation='relu' ,W_regularizer=l1l2(l1=9E-7, l2=5e-07))) #W_regularizer=l1(0.000001), activity_regularizer=activity_l1(0.000001)))
+    
+
+
+    model.add(Dense(neurons1, input_dim=30, init='normal', activation='relu' ,W_regularizer=l1l2(l1=9E-7, l2=5e-07))) #W_regularizer=l1(0.000001), activity_regularizer=activity_l1(0.000001)))
     #model.add(L)
-    model.add(Dense(50, activation ='relu'))
+    model.add(Dense(360, activation ='relu'))
     #model.add(L)
-    model.add(Dense(70, activation ='relu'))
+    model.add(Dense(neurons3, activation ='relu'))
     #model.add(L)
     model.add(Dense(2))
     model.add(Activation('softmax'))
-    admax = Adamax(lr=0.002, beta_1=0.9, beta_2=0.999, epsilon=1e-08, decay=decay)
+    admax = Adamax(lr=0.002, beta_1=0.9, beta_2=0.999, epsilon=1e-08, decay=0.0)
     model.compile(optimizer=admax, loss='binary_crossentropy', metrics=['accuracy']) # Gradient descent
     return model
 
 
 
-# Weights more adapted to the class imbalanced of the issue.
+# Weights more adapted to the imbalances of the classes.
 class_weight = {0 : 3,
     1: 1}
 
@@ -105,6 +129,11 @@ X = dataset[0:250000:,1:31].astype('float32')
 Y = dataset[0:250000:,32].astype('float32')
 W = dataset[0:250000:,31:32]
 
+for i in range(250000):
+	if (X[i][0] - 0.162894 < 0.0001):
+		print(i)
+		break
+
 X -= np.mean(X, axis = 0) # center
 X /= np.std(X, axis = 0) # normalize
 
@@ -116,7 +145,9 @@ model = KerasClassifier(build_fn=create_model, nb_epoch=10, batch_size=80, verbo
 
 kappa_scorer = make_scorer(cohen_kappa_score)
 # define the grid search parameters
-neurons = [50, 70, 90, 95, 120, 200]
+neurons1 = [200,275,350]
+neurons2 = [200, 275, 350]
+neurons3 = [200, 275, 350]
 batch_size = [80,83,86,89,92,95,98, 100]
 epochs = [100, 120, 140, 160, 180, 200]
 WTAX=[3,4,5]
@@ -125,8 +156,9 @@ l2_value = [0.0000005, 0.0000003, 0.0000007, 0.0000009, 0.0000001]
 l_rate = [0.001, 0.002, 0.003 ,0.004]
 decay = [0.000001, 0.000002, 0.000003, 0.000004, 0.000005]
 
-param_grid = dict(decay=decay)
-grid = GridSearchCV(estimator=model, param_grid=param_grid, n_jobs=1, scoring=AMS, cv =2, fit_params={'class_weight':class_weight})#, verbose=1)
+param_grid = dict(neurons1=neurons1, neurons3=neurons3)
+grid = GridSearchCV(estimator=model, param_grid=param_grid, n_jobs=1, scoring=AMS, cv =None)#, verbose=1)
+
 grid_result = grid.fit(X, Y)
 # summarize results
 print("Best: %f using %s" % (grid_result.best_score_, grid_result.best_params_))
