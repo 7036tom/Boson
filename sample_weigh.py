@@ -4,7 +4,7 @@ from keras.layers import Dense, Reshape, Activation, Dropout,Layer, LocallyConne
 from keras.callbacks import EarlyStopping, ModelCheckpoint, LearningRateScheduler, ReduceLROnPlateau, LearningRateScheduler
 from keras.optimizers import SGD
 from keras.optimizers import RMSprop, Adamax
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 import math
 from math import log, log10
 
@@ -25,6 +25,7 @@ np.random.seed(seed)
 from keras.utils import np_utils
 from keras.layers.convolutional import Convolution2D
 K.set_image_dim_ordering('th')
+
 
 class WinnerTakeAll1D_GaborMellis(Layer):
 
@@ -183,6 +184,8 @@ weight0 = 250000/nbr_signals
 class_weight = {0 : weight0 ,
     1: weight1}
 
+Seuil = 0.55
+
 
 # define 10-fold cross validation test harness
 kfold = StratifiedKFold(n_splits=5, shuffle=True, random_state=seed)
@@ -227,7 +230,7 @@ for i in range(1):
 		
 		callbacks = [
    			EarlyStopping(monitor='val_loss', patience=15, verbose=0),
-   			ModelCheckpoint("/home/admin-7036/Documents/Projet python/bosongit/weigh.hdf", monitor='val_loss', save_best_only=True, verbose=0),
+   			ModelCheckpoint("weigh.hdf", monitor='val_loss', save_best_only=True, verbose=0),
    			reduce_lr
    			#LearningRateScheduler(schedule),
 		]
@@ -248,13 +251,14 @@ for i in range(1):
 		sample_weight = W[train,0]
 		sample_weight = sample_weight * 1000
 		sample_weight = np.log10(sample_weight)
+		sample_weight = sample_weight * 2
 		
 		print(sample_weight)
 
 		# Fit the model		
-		history = model[j].fit(X2[train], Y3[train],validation_data=(X2[test], Y3[test]), nb_epoch=200, batch_size=93, sample_weight=sample_weight, class_weight =class_weight, shuffle=True, verbose=1, callbacks=callbacks)#, class_weight=class_weight)
+		model[j].fit(X2[train], Y3[train],validation_data=(X2[test], Y3[test]), nb_epoch=100, batch_size=93, sample_weight=sample_weight, class_weight =class_weight, shuffle=True, verbose=1, callbacks=callbacks)#, class_weight=class_weight)
 
-		
+		"""
 		# list all data in history
 		print(history.history.keys())
 		# summarize history for accuracy
@@ -274,7 +278,7 @@ for i in range(1):
 		plt.legend(['train', 'test'], loc='upper left')
 		plt.show()
 		#model.fit(X2[train], Y3[train], nb_epoch=200, batch_size=96)
-
+		"""
 		
 		# evaluate the model
 		Z_eval = model[j].predict(X2[test], batch_size=32, verbose=0)
@@ -282,7 +286,7 @@ for i in range(1):
 		b = 0
 		print(Y3[test][1])
 		for i in range(len(test)):
-			if (Z_eval[i][0]<Z_eval[i][1] ):
+			if (Z_eval[i][0]<Z_eval[i][1] and Z_eval[i][1] > Seuil  ):
 				if (Y3[test][i][1]==1):
 					s = s + W[test][i]
 				if (Y3[test][i][1]==0):
@@ -330,7 +334,7 @@ s = 0
 b = 0
 
 for i in range(250000):
-	if (Z0_train_restult[i][1]+Z1_train_restult[i][1]+Z2_train_restult[i][1]+Z3_train_restult[i][1]+Z4_train_restult[i][1]> Z0_train_restult[i][0]+Z1_train_restult[i][0]+Z2_train_restult[i][0]+Z3_train_restult[i][0]+Z4_train_restult[i][0]):
+	if (Z0_train_restult[i][1]+Z1_train_restult[i][1]+Z2_train_restult[i][1]+Z3_train_restult[i][1]+Z4_train_restult[i][1]> Z0_train_restult[i][0]+Z1_train_restult[i][0]+Z2_train_restult[i][0]+Z3_train_restult[i][0]+Z4_train_restult[i][0] and (Z0_train_restult[i][1]+Z1_train_restult[i][1]+Z2_train_restult[i][1]+Z3_train_restult[i][1]+Z4_train_restult[i][1])/5 > Seuil):
 		if (Y2[i]==1):
 			s = s + W[i]
 		if (Y2[i]==0):
@@ -357,9 +361,10 @@ Z4_restult = model[4].predict(Z2, batch_size=32, verbose=0)
 c = csv.writer(open("Submission.csv", "wb"))
 c.writerow(["EventId","RankOrder","Class"])
 for i in range(550000):
-	if (Z0_restult[i][1]+Z1_restult[i][1]+Z2_restult[i][1]+Z3_restult[i][1]+Z4_restult[i][1]> Z0_restult[i][0]+Z1_restult[i][0]+Z2_restult[i][0]+Z3_restult[i][0]+Z4_restult[i][0]):
+
+	if (Z0_restult[i][1]+Z1_restult[i][1]+Z2_restult[i][1]+Z3_restult[i][1]+Z4_restult[i][1]> Z0_restult[i][0]+Z1_restult[i][0]+Z2_restult[i][0]+Z3_restult[i][0]+Z4_restult[i][0] and (Z0_restult[i][1]+Z1_restult[i][1]+Z2_restult[i][1]+Z3_restult[i][1]+Z4_restult[i][1])/5 > Seuil):
 		c.writerow([350000+i,i+1,'s' ])
-	if (Z0_restult[i][1]+Z1_restult[i][1]+Z2_restult[i][1]+Z3_restult[i][1]+Z4_restult[i][1]<= Z0_restult[i][0]+Z1_restult[i][0]+Z2_restult[i][0]+Z3_restult[i][0]+Z4_restult[i][0]):
+	else:
 		c.writerow([i+350000,i+1,'b' ])
 
 
