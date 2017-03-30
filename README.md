@@ -2,7 +2,7 @@
 
 ## Note :
 
-Le dossier doit contenir les fichiers training.csv et test.csv presents ici.
+Il est necessaire d'enlever le header des fichiers train et test.
  
 ## GridSearch.py
 
