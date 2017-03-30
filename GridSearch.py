@@ -1,9 +1,7 @@
 # Create first network with Keras
 from keras.models import Sequential
-from keras.layers import Dense, Reshape, Activation, Dropout,Layer, LocallyConnected1D, LocallyConnected2D, Convolution1D, GlobalMaxPooling1D, Flatten, MaxPooling1D, MaxPooling2D
-from keras.callbacks import EarlyStopping, ModelCheckpoint, LearningRateScheduler, ReduceLROnPlateau
-from keras.optimizers import SGD
-from keras.optimizers import RMSprop, Adamax, SGD
+from keras.layers import Dense, Reshape, Activation, Dropout,Layer
+from keras.optimizers import Adamax
 from keras import backend as K
 from theano import tensor as T
 import numpy as np
@@ -11,10 +9,7 @@ import pandas
 import math
 from keras.regularizers import l1l2
 from keras.utils import np_utils
-from sklearn.metrics import f1_score
-#K.set_image_dim_ordering('th')
 from sklearn.metrics import cohen_kappa_score, make_scorer
-
 
 
 # Use scikit-learn to grid search the batch size and epochs
@@ -54,27 +49,26 @@ def AMS(estimator, y_true, y_probs):
 
 	s = 0
 	b = 0
+	
+	print(X[0][0])
+	print(X[1][0])
+	print(y_true[0][0])
+	print(y_true[1][0])
+	print(X[250000-166666][0])
+	print(X[250000-166666+1][0])
 
-	print("ytrue0 : "+str(y_true[0][0]))
-	print("X : "+str(X[0][0]))
-	print("X1 : "+str(X[250000-len(y_true)][0]))
+
 	
 	if (y_true[0][0]==X[0][0]):
-		Wp=W[:len(y_true)]
-		print(X[0])
-		print(y_true[0])
+		Wp=W[:len(y_true)]	
+		
 	elif(y_true[0][0]==X[250000-166666][0]):
-		Wp=W[250000-166666:]
-		print(X[250000-166666])
-		print(y_true[0])
+		Wp=W[250000-166666:]	
+		
 	else:
 		Wp=W[250000-len(y_true):]
-		print(X[250000-len(y_true)])
-		print(y_true[0])
-	print(len(y_true))
-	print("++++++++++")
-
-
+		
+		
 	for i in range(0,len(y_true)):
 		if (Z[i]==1):
 			if (Y[i][0] <= Y[i][1]):
@@ -86,8 +80,8 @@ def AMS(estimator, y_true, y_probs):
 	radicand = 2 *( (s+b+br) * math.log(1.0 + s/(b+br)) - s)
 
 	AMS = math.sqrt(radicand)
+	print("ams : "+str(AMS))
 	return AMS
-
 
 
 # fix random seed for reproducibility
@@ -95,25 +89,25 @@ seed = 7
 numpy.random.seed(seed)
 
 # Function to create model, required for KerasClassifier
-def create_model(neurons1, neurons2, neurons3):
+
+def create_model(decay):
     # create model
     #L=WinnerTakeAll1D_GaborMellis(spatial=1, OneOnX=WTAX)
     model = Sequential()
     
 
 
-    model.add(Dense(neurons1, input_dim=30, init='normal', activation='relu' ,W_regularizer=l1l2(l1=9E-7, l2=5e-07))) #W_regularizer=l1(0.000001), activity_regularizer=activity_l1(0.000001)))
+    model.add(Dense(90, input_dim=30, init='normal', activation='relu' ,W_regularizer=l1l2(l1=9E-7, l2=5e-07))) #W_regularizer=l1(0.000001), activity_regularizer=activity_l1(0.000001)))
     #model.add(L)
-    model.add(Dense(360, activation ='relu'))
+    model.add(Dense(130, activation ='relu'))
     #model.add(L)
-    model.add(Dense(neurons3, activation ='relu'))
+    model.add(Dense(85, activation ='relu'))
     #model.add(L)
     model.add(Dense(2))
     model.add(Activation('softmax'))
-    admax = Adamax(lr=0.002, beta_1=0.9, beta_2=0.999, epsilon=1e-08, decay=0.0)
+    admax = Adamax(lr=0.002, beta_1=0.9, beta_2=0.999, epsilon=1e-08, decay=decay)
     model.compile(optimizer=admax, loss='binary_crossentropy', metrics=['accuracy']) # Gradient descent
     return model
-
 
 
 # Weights more adapted to the imbalances of the classes.
@@ -145,19 +139,19 @@ model = KerasClassifier(build_fn=create_model, nb_epoch=10, batch_size=80, verbo
 
 kappa_scorer = make_scorer(cohen_kappa_score)
 # define the grid search parameters
-neurons1 = [200,275,350]
+neurons1 = [200,220,240]
 neurons2 = [200, 275, 350]
-neurons3 = [200, 275, 350]
+neurons3 = [275, 250, 300]
 batch_size = [80,83,86,89,92,95,98, 100]
 epochs = [100, 120, 140, 160, 180, 200]
 WTAX=[3,4,5]
 l1_value = [0.0000005, 0.0000003, 0.0000007, 0.0000009, 0.0000001]
 l2_value = [0.0000005, 0.0000003, 0.0000007, 0.0000009, 0.0000001]
 l_rate = [0.001, 0.002, 0.003 ,0.004]
-decay = [0.000001, 0.000002, 0.000003, 0.000004, 0.000005]
+decay = [0.01, 0.001, 0.0001, 0.00001, 0.000001, 0]
 
-param_grid = dict(neurons1=neurons1, neurons3=neurons3)
-grid = GridSearchCV(estimator=model, param_grid=param_grid, n_jobs=1, scoring=AMS, cv =None)#, verbose=1)
+param_grid = dict(decay=decay)
+grid = GridSearchCV(estimator=model, param_grid=param_grid, n_jobs=-1, scoring=AMS, cv =None)#, verbose=1)
 
 grid_result = grid.fit(X, Y)
 # summarize results

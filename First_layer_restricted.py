@@ -171,28 +171,27 @@ for i in Missing_position:
 # Implementation of advanced features in x and x2
 # Notes : minv(tau,lep) (3) | 
 
-"""
 
 for i in range(250000):
 	# Implementation of Phi derived features
-	X2[i,24] = min(dataset[i,26]-dataset[i,25],dataset[i,26]-dataset[i,24],dataset[i,25]-dataset[i,24])
-	X2[i,25] = min(dataset[i,26]-dataset[i,24],dataset[i,25]-dataset[i,24])
-	X2[i,26] = min(dataset[i,26]-dataset[i,25],dataset[i,26]-dataset[i,24])
-	X2[i,27] = dataset[i,25]-dataset[i,24] # Erreur ?
+	X2[i,20] = min(dataset[i,16]-dataset[i,19],dataset[i,16]-dataset[i,21],dataset[i,19]-dataset[i,21])
+	X2[i,18] = min(dataset[i,16]-dataset[i,21],dataset[i,19]-dataset[i,21])
+	X2[i,15] = min(dataset[i,16]-dataset[i,19],dataset[i,16]-dataset[i,21])
+	X2[i,27] = dataset[i,19]-dataset[i,21]
 
 	# Implementation of mass based features
 	#x2[i,4] = log(1)#+dataset[i, 3])
 
 for i in range(550000):
 	# Implementation of Phi derived features
-	Z2[i,24] = min(dataset2[i,26]-dataset2[i,25],dataset2[i,26]-dataset2[i,24],dataset2[i,25]-dataset2[i,24])
-	Z2[i,25] = min(dataset2[i,26]-dataset2[i,24],dataset2[i,25]-dataset2[i,24])
-	Z2[i,26] = min(dataset2[i,26]-dataset2[i,25],dataset2[i,26]-dataset2[i,24])
-	Z2[i,27] = dataset2[i,25]-dataset2[i,24] # Erreur ?
+	Z2[i,20] = min(dataset2[i,16]-dataset2[i,19],dataset2[i,16]-dataset2[i,21],dataset2[i,19]-dataset2[i,21])
+	Z2[i,18] = min(dataset2[i,16]-dataset2[i,21],dataset2[i,19]-dataset2[i,21])
+	Z2[i,15] = min(dataset2[i,16]-dataset2[i,19],dataset2[i,16]-dataset2[i,21])
+	Z2[i,27] = dataset2[i,19]-dataset2[i,21]
 
 	# Implementation of mass based features
 	#x2[i,4] = log(1)#+dataset[i, 3])
-"""
+
 
 #
 
@@ -481,7 +480,7 @@ for i in range(550000):
 # Normalization DONE
 # Elimination of Azymuth angles features DONE
 # Winner takes all activation DONE 
-# Constrain neurons in first layer
+# Constrain neurons in first layer DONE
 #
 #
 #
